@@ -20,7 +20,7 @@ I built this project to learn **TypeScript** and **GraphQL** end to end. One sch
 ## Quick start
 
 ```bash
-git clone https://github.com/<your-username>/energy-graphql.git
+git clone https://github.com/davidaustindavid/energy-graphql.git
 cd energy-graphql
 npm install
 npm run dev
