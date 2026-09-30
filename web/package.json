@@ -1,0 +1,29 @@
+{
+  "name": "@energy-graphql/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "codegen": "graphql-codegen --config codegen.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "^7.4.3",
+    "@graphql-codegen/client-preset": "^6.2.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.1"
+  },
+  "dependencies": {
+    "@apollo/client": "^4.3.1",
+    "graphql": "^16.14.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "rxjs": "^7.8.2"
+  }
+}

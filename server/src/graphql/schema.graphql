@@ -1,0 +1,148 @@
+# Energy GraphQL API
+#
+# This file is the *contract* between the server and every client.
+# Everything a client can ask for is described here, and codegen turns it
+# into TypeScript types for both the server (resolvers) and the web app (queries).
+#
+# Strings in quotes above a type or field ("like this") are descriptions:
+# they show up in Apollo Sandbox's docs panel. `#` lines are plain comments.
+
+# ─── Enums ──────────────────────────────────────────────────────────────
+# An enum is a closed set of allowed values. GraphQL rejects anything else
+# before your code ever runs.
+
+"The energy benchmarks this API knows about."
+enum Commodity {
+  "West Texas Intermediate crude oil, Cushing, OK"
+  WTI
+  "Brent crude oil, North Sea"
+  BRENT
+  "Henry Hub natural gas, Erath, LA"
+  HENRY_HUB
+}
+
+"How often a series is sampled."
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+"Where the numbers came from."
+enum DataSource {
+  "Live data from the U.S. Energy Information Administration API"
+  EIA
+  "Built-in synthetic data used when no EIA_API_KEY is set. Not real prices."
+  SAMPLE
+}
+
+enum AlertDirection {
+  ABOVE
+  BELOW
+}
+
+# ─── Object types ───────────────────────────────────────────────────────
+
+"Static information about a commodity."
+type CommodityInfo {
+  id: Commodity!
+  name: String!
+  "Unit the price is quoted in, e.g. \"USD per barrel\""
+  unit: String!
+  "The EIA series id, e.g. RWTC"
+  eiaSeriesId: String!
+}
+
+"A single observation: a date and a price."
+type PricePoint {
+  "ISO date (YYYY-MM-DD for daily/weekly, YYYY-MM for monthly)"
+  date: String!
+  value: Float!
+}
+
+"Summary statistics over a set of points."
+type SeriesStats {
+  count: Int!
+  min: Float!
+  max: Float!
+  mean: Float!
+  "Last value minus first value"
+  change: Float!
+  "Change as a percentage of the first value"
+  changePercent: Float!
+}
+
+"""
+A time series of prices. Notice that `points`, `latest` and `stats` are
+fields with their own resolvers — the client only pays for what it asks for.
+"""
+type PriceSeries {
+  commodity: CommodityInfo!
+  frequency: Frequency!
+  source: DataSource!
+  "Points in ascending date order. Use `last` to take only the most recent N."
+  points(last: Int): [PricePoint!]!
+  latest: PricePoint
+  stats: SeriesStats
+}
+
+"The difference between two commodities on matching dates (a minus b)."
+type Spread {
+  a: CommodityInfo!
+  b: CommodityInfo!
+  frequency: Frequency!
+  points: [PricePoint!]!
+}
+
+"A user-defined price alert. Stored in memory, so it resets when the server restarts."
+type PriceAlert {
+  id: ID!
+  commodity: CommodityInfo!
+  direction: AlertDirection!
+  threshold: Float!
+  note: String
+  createdAt: String!
+  "Computed on every request: is the latest price past the threshold?"
+  triggered: Boolean!
+  "The latest price this alert was checked against."
+  currentPrice: Float
+}
+
+# ─── Inputs ─────────────────────────────────────────────────────────────
+# Input types are the shapes clients can SEND (arguments). They can't have
+# resolvers, which is why they're a separate kind of type from object types.
+
+input DateRange {
+  "Inclusive start date (same format as PricePoint.date)"
+  from: String
+  "Inclusive end date"
+  to: String
+}
+
+input CreateAlertInput {
+  commodity: Commodity!
+  direction: AlertDirection!
+  threshold: Float!
+  note: String
+}
+
+# ─── Entry points ───────────────────────────────────────────────────────
+
+type Query {
+  "Every commodity the API supports."
+  commodities: [CommodityInfo!]!
+
+  "A price series for one commodity."
+  series(commodity: Commodity!, frequency: Frequency = MONTHLY, range: DateRange): PriceSeries!
+
+  "Price difference between two commodities, e.g. the Brent–WTI spread."
+  spread(a: Commodity!, b: Commodity!, frequency: Frequency = MONTHLY, range: DateRange): Spread!
+
+  alerts: [PriceAlert!]!
+}
+
+type Mutation {
+  createAlert(input: CreateAlertInput!): PriceAlert!
+  "Returns true if an alert was removed."
+  deleteAlert(id: ID!): Boolean!
+}

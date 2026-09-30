@@ -1,0 +1,21 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Fails if someone changed the schema or a query without re-running codegen.
+      - run: npm run codegen && git diff --exit-code -- server/src/graphql/generated.ts web/src/gql
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
